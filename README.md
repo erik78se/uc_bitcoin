@@ -47,6 +47,7 @@ Installation
 
 * Install Drupal 7 <http://drupal.org/documentation/install>.
 * Install Ubercart 2 <http://www.ubercart.org/docs/user/8075/installing_ubercart>.
+* Install bitcoin-php <http://github.com/mikegogulski/bitcoin-php>
 * Transfer the contents of the distribution archives to the `modules/` directory
   of your Drupal installation. 
 
