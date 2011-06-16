@@ -83,7 +83,7 @@ Authors
 -------
 
 * [Erik Lönroth] (http://github.com/erik78se)
-
+* [Dariusz Baha] (http://github.com/Darba)
 * [Mike Gogulski](http://github.com/mikegogulski) -
   <http://www.nostate.com/> <http://www.gogulski.com/>
 
