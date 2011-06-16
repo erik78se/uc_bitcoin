@@ -23,7 +23,8 @@ Requirements
 
 ### Base requirements
 * Ubercart 2.x
-* Drupal 6.x
+* Drupal 7.x
+* [bitcoin-php]:	http://github.com/mikegogulski/bitcoin-php
 
 ### PHP requirements:
 * PHP5
@@ -44,7 +45,7 @@ Limitations
 Installation
 ------------
 
-* Install Drupal 6 <http://drupal.org/documentation/install>.
+* Install Drupal 7 <http://drupal.org/documentation/install>.
 * Install Ubercart 2 <http://www.ubercart.org/docs/user/8075/installing_ubercart>.
 * Transfer the contents of the distribution archives to the `modules/` directory
   of your Drupal installation. 
@@ -81,8 +82,11 @@ Donate
 Authors
 -------
 
+* [Erik Lönroth] (http://github.com/erik78se)
+
 * [Mike Gogulski](http://github.com/mikegogulski) -
   <http://www.nostate.com/> <http://www.gogulski.com/>
+
 
 Credits
 -------

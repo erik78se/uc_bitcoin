@@ -9,12 +9,27 @@
  */
 //variable_set('uc_payment_logging', TRUE);
 
+//Daba Test
+/*
+function uc_bitcoin_menu() {
+  $items = array();
+  $items['uc_bitcoin'] = array(
+    'title' => 'uc_bitcoin',
+    'page callback' => 'drupal_get_form',
+		'page arguments' => array('uc_bitcoin_settings_form'),
+    'access callback' => TRUE,
+		'type' => MENU_NORMAL_ITEM,
+  );
+	return $items;
+}
+*/
+
 /**
  * Set up the Bitcoin payment method settings form.
  */
 function uc_bitcoin_settings_form() {
   $form = array();
-
+	//dpm("DABA2:");
   $form['server'] = array(
     '#type' => 'fieldset',
     '#title' => t('Server settings'),
@@ -150,10 +165,11 @@ function uc_bitcoin_mail_alter(&$message) {
 /**
  * Implementation of hook_order().
  */
-function uc_bitcoin_order($op, &$arg1, $arg2) {
-  switch ($op) {
+function uc_bitcoin_order($op, &$arg1, $arg2) {  
+dpm($op,"in uc_bitcoin_order: "); //DEBUG
+switch ($op) {
     case 'submit':
-      include_once("bitcoin.inc");
+      include_once("./includes/bitcoin-php/bitcoin.inc");
       $bitcoin_client = new BitcoinClient(variable_get("uc_bitcoin_server_scheme", ""),
         variable_get("uc_bitcoin_server_username", ""),
         variable_get("uc_bitcoin_server_password", ""),
@@ -170,6 +186,7 @@ function uc_bitcoin_order($op, &$arg1, $arg2) {
       $label = $arg1->order_id . " " . number_format($arg1->order_total, 2, ".", "") . " " . time();
       try {
         $address = $bitcoin_client->query("getnewaddress", $label);
+				dpm($address,"get_address:");
       } catch (BitcoinClientException $e) {
         watchdog('uc_bitcoin_order', 'getnewaddress failed. Fault: !fault', $e->getMessage());
         return array(array('pass' => FALSE, 'message' => t('The Bitcoin server is presently unavailable. Please contact the site administrator.')));
@@ -192,7 +209,7 @@ function uc_bitcoin_order($op, &$arg1, $arg2) {
 /**
  * Implementation of hook_payment_method().
  */
-function uc_bitcoin_payment_method() {
+function uc_bitcoin_uc_payment_method() {
   $methods[] = array(
     'id' => 'bitcoin',
     'name' => t('Bitcoin'),
@@ -217,20 +234,97 @@ function uc_bitcoin_theme($existing, $type, $theme, $path) {
   );
 }
 
+
+function do_submit() {
+
+}
+
+
+
 /*******************************************************************************
  * Callback Functions, Forms, and Tables
  ******************************************************************************/
 
-function uc_payment_method_bitcoin($op, &$arg1) {
-  switch ($op) {
+function uc_payment_method_bitcoin($op, &$order, $form = NULL, &$form_state = NULL) {
+  dpm($op,"in uc_payment_method_bitcoin op:"); //DEBUG
+	switch ($op) {
       // Display the Bitcoin address in the payment order pane.
+
       case 'customer-view':
-    case 'order-view':
-      $address = db_result(db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} WHERE order_id=%d", $arg1->order_id));
-      return t('Bitcoin address for payment: !address', array('!address' => $address));
+      	   
+      case 'order-view':
+       	   // $address = db_result(db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} WHERE order_id=%d", $arg1->order_id));
+	   $address = "sdflhsdfljhdf";
+		 dpm($address,"address:");
+      	   return t('Bitcoin address for payment: !address', array('!address' => $address));
       // Add Bitcoin settings to the payment methods settings form.
       case 'settings':
-      return uc_bitcoin_settings_form();
+      	   return uc_bitcoin_settings_form();
+			//Daba Test
+      case 'cart-details':
+      //	   $details = uc_payment_method_credit_form(array(), $form_state, $order);
+      //	   return $details;
+
+      $form['foo'] = array(
+			'#type' => 'textfield',
+  		'#title' => t('Bitcon address to send money to:'),
+  		'#default_value' => "Here goes a bitcoin address after the order has been placed.",
+  		'#size' => 60,
+  		'#maxlength' => 64,
+  		'#description' => t('A bitcon address') );
+	return $form;
+
+
+	case 'order-submit':
+	include_once("./includes/bitcoin-php/bitcoin.inc");
+      $bitcoin_client = new BitcoinClient(variable_get("uc_bitcoin_server_scheme", ""),
+        variable_get("uc_bitcoin_server_username", ""),
+        variable_get("uc_bitcoin_server_password", ""),
+        variable_get("uc_bitcoin_server_address", ""),
+        variable_get("uc_bitcoin_server_port", ""),
+        variable_get("uc_bitcoin_server_certificate_path", ""));
+      if (TRUE !== ($fault = $bitcoin_client->can_connect())) {
+        watchdog('uc_bitcoin_order', 'Unable to access Bitcoin server. Fault: !fault', $fault);
+        return array(array(
+          'pass' => FALSE,
+          'message' => t('The Bitcoin server is presently unavailable. Please contact the site administrator.')));
+      }
+      // stuff the order id, the total order price and a timestamp into the bitcoin address's label
+      $label = $order->order_id . " " . number_format($order->order_total, 2, ".", "") . " " . time();
+      try {
+        $address = $bitcoin_client->query("getnewaddress", $label);
+				dpm($address,"get_address:"); //DEBUG
+      } catch (BitcoinClientException $e) {
+        watchdog('uc_bitcoin_order', 'getnewaddress failed. Fault: !fault', $e->getMessage());
+        return array(array('pass' => FALSE, 'message' => t('The Bitcoin server is presently unavailable. Please contact the site administrator.')));
+      }
+      if (!Bitcoin::checkAddress($address))
+        return array(array(
+          'pass' => FALSE,
+          'message' => t('The Bitcoin server returned an invalid address. Please contact the site administrator.')));
+      // db_query("INSERT INTO {uc_payment_bitcoin} (order_id, bitcoin_address) VALUES (%d, '%s')", array( :order_id => $order->order_id, $address),  );
+      //db_insert("INSERT INTO {uc_payment_bitcoin} (order_id, bitcoin_address) VALUES (%d, '%s')", array( :order_id => $order->order_id, $address),  );
+      
+			$nid = db_insert('uc_payment_bitcoin') // Table name no longer needs {}
+			->fields(array(
+			'order_id' => $order->order_id,
+			'bitcoin_address' => $address,
+			))
+			->execute();
+			
+			
+			
+			$message = t('Please send your payment of BTC @total to Bitcoin address @address.', array(
+        '@address' => $address,
+        '@total' => $order->order_total));
+      return array(array(
+        'pass' => TRUE,
+        'message' => $message));
+      break;
+
+
+
+		
   }
 }
 
@@ -247,7 +341,7 @@ function uc_bitcoin_cron() {
   // TODO: test if $result has any rows
 
   // prepare the JSON-RPC client
-  include_once("bitcoin.inc");
+  include_once("./includes/bitcoin-php/bitcoin.inc");
   $bitcoin_client = new BitcoinClient(variable_get("uc_bitcoin_server_scheme", ""),
     variable_get("uc_bitcoin_server_username", ""),
     variable_get("uc_bitcoin_server_password", ""),
