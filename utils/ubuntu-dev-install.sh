@@ -6,8 +6,8 @@ DB_NAME=mydbname
 SITE_NAME=mysite
 
 function install_packages() {
-    apt-get intstall apache2
-    apt-get intstall php5
+    apt-get install apache2
+    apt-get install php5
     apt-get install php5-gd
     apt-get install postgresql-8.4
     apt-get install php5-pgsql
