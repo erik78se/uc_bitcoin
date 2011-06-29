@@ -166,8 +166,8 @@ function uc_bitcoin_mail_alter(&$message) {
  * Implementation of hook_order().
  */
 function uc_bitcoin_order($op, &$arg1, $arg2) {  
-	// dpm($op,"in uc_bitcoin_order: "); //DEBUG
-switch ($op) {
+	dpm($op,"in uc_bitcoin_order: "); //DEBUG
+	switch ($op) {
     case 'submit':
       include_once("./includes/bitcoin-php/bitcoin.inc");
       $bitcoin_client = new BitcoinClient(variable_get("uc_bitcoin_server_scheme", ""),
@@ -180,7 +180,7 @@ switch ($op) {
         watchdog('uc_bitcoin_order', 'Unable to access Bitcoin server. Fault: !fault', $fault);
         return array(array(
           'pass' => FALSE,
-          'message' => t('The Bitcoin server is presently unavailable. Please contact the site administrator.')));
+          'message' => t('Payment via Bitcoin is presently unavailable. Please contact the site administrator.')));
       }
       // stuff the order id, the total order price and a timestamp into the bitcoin address's label
       $label = $arg1->order_id . " " . number_format($arg1->order_total, 2, ".", "") . " " . time();
@@ -189,19 +189,22 @@ switch ($op) {
 				// dpm($address,"get_address:");
       } catch (BitcoinClientException $e) {
         watchdog('uc_bitcoin_order', 'getnewaddress failed. Fault: !fault', $e->getMessage());
-        return array(array('pass' => FALSE, 'message' => t('The Bitcoin server is presently unavailable. Please contact the site administrator.')));
+        return array(array('pass' => FALSE, 'message' => t('Payment via Bitcoin is presently unavailable. Please contact the site administrator.')));
       }
       if (!Bitcoin::checkAddress($address))
         return array(array(
           'pass' => FALSE,
           'message' => t('The Bitcoin server returned an invalid address. Please contact the site administrator.')));
+      
       db_query("INSERT INTO {uc_payment_bitcoin} (order_id, bitcoin_address) VALUES (%d, '%s')", $arg1->order_id, $address);
+      //Issue: #19
       $message = t('Please send your payment of BTC @total to Bitcoin address @address.', array(
         '@address' => $address,
         '@total' => $arg1->order_total));
       return array(array(
         'pass' => TRUE,
         'message' => $message));
+      
       break;
   }
 }
@@ -246,17 +249,23 @@ function do_submit() {
  ******************************************************************************/
 
 function uc_payment_method_bitcoin($op, &$order, $form = NULL, &$form_state = NULL) {
-  // dpm($op,"in uc_payment_method_bitcoin op:"); //DEBUG
+    dpm($op,"in uc_payment_method_bitcoin op:"); //DEBUG
 	switch ($op) {
       // Display the Bitcoin address in the payment order pane.
 
       case 'customer-view':
-      	   
+      	   dpm("customer-view:");
       case 'order-view':
-       	   // $address = db_result(db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} WHERE order_id=%d", $arg1->order_id));
-	   $address = "sdflhsdfljhdf";
-		 // dpm($address,"address:");
-      	   return t('Bitcoin address for payment: !address', array('!address' => $address));
+       	    //D6 $address = db_result(db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} WHERE order_id=%d", $arg1->order_id));
+       	   	$address = db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} " .
+       	   			"			 WHERE order_id = :order_id", array(':order_id' => $order->order_id) )->fetchField();
+		 	dpm($address,"address ::: ");
+       		$form['order_payment_bitcoin_address'] = array(
+  			'#markup' => t("Payment to address: " . $address) );
+
+			return $form;
+      		
+      		
       // Add Bitcoin settings to the payment methods settings form.
       case 'settings':
       	   return uc_bitcoin_settings_form();
@@ -266,12 +275,12 @@ function uc_payment_method_bitcoin($op, &$order, $form = NULL, &$form_state = NU
       //	   return $details;
 
       $form['foo'] = array(
-			'#type' => 'textfield',
+		'#type' => 'textfield',
   		'#title' => t('Bitcon address to send money to:'),
   		'#default_value' => "Here goes a bitcoin address after the order has been placed.",
   		'#size' => 60,
   		'#maxlength' => 64,
-  		'#description' => t('A bitcon address') );
+  		'#description' => t('A bitcoin address') );
 	return $form;
 
 
