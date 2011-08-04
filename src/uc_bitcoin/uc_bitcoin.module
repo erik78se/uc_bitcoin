@@ -6,23 +6,10 @@
  * Bitcoin payment method.
  *
  * @author Mike Gogulski - http://www.nostate.com/ http://www.gogulski.com/
- */
+ * @author Erik Lönroth - erik.lonroth@gmail.com
+ **/
 //variable_set('uc_payment_logging', TRUE);
 
-//Daba Test
-/*
-function uc_bitcoin_menu() {
-  $items = array();
-  $items['uc_bitcoin'] = array(
-    'title' => 'uc_bitcoin',
-    'page callback' => 'drupal_get_form',
-		'page arguments' => array('uc_bitcoin_settings_form'),
-    'access callback' => TRUE,
-		'type' => MENU_NORMAL_ITEM,
-  );
-	return $items;
-}
-*/
 
 /**
  * Set up the Bitcoin payment method settings form.
@@ -138,27 +125,19 @@ function uc_payment_methods_form_validate($form, &$form_state) {
 /**
  * Implementation of hook_mail_alter().
  * @param array $&message
- * @todo Make this less fragile.
  *
- * The idea here is to transform:
- *
- *   (t('Payment Method:'))(not 'Bitcoin')'Bitcoin'
- *
- * to
- *
- *   \1\2Bitcoin -- send payment to...
- *
- * But only for invoice emails.
+ * Produces an altered email for 'uc_order_action-mail'
+ * which includes the bitcoin address to send payments to
+ * for the order.
  */
 function uc_bitcoin_mail_alter(&$message) {
-  if ($message['id'] == 'uc_order_action-mail' && !strstr(uc_store_email_from(), $message['to'])) {
-    // fragile
-    $bits = explode(" ", $_SESSION['messages']['status'][0]);
-    $address = trim($bits[count($bits) - 1], ' .');
-    // also looks fragile, no idea if it's really t()-safe
-    $message['body'] = preg_replace('/(' . t('Payment Method:') . ')(.*)Bitcoin/s',
-      '${1}${2}Bitcoin (' . t("send payment to Bitcoin address !address.", array("!address" => $address)) . ')',
-      $message['body']);
+  // Set this to debug mails on local disk.
+  // variable_set('devel_debug_mail_directory', '/tmp/');
+  if ($message['id'] == 'uc_order_action-mail') {
+    $order = $message['params']['replacements']['uc_order'];
+    $result = db_query("SELECT bitcoin_address FROM {uc_payment_bitcoin} " .
+                       "WHERE order_id = :order_id", array(':order_id' => $order->order_id) )->fetchField();
+    $message['body'][] = "--\nPayment is sent to address: " . t($result);    
   }
 }
 
